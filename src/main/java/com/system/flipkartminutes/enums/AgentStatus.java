@@ -1,7 +1,7 @@
 package com.system.flipkartminutes.enums;
 
 public enum AgentStatus {
-    AVAILABLE,
     IDLE,
+    BUSY,
     NOT_AVAILABLE
 }

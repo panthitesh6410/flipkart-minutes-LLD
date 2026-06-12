@@ -7,6 +7,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
+
 @Slf4j
 @SpringBootApplication
 public class FlipkartMinutesApplication {
@@ -16,7 +21,7 @@ public class FlipkartMinutesApplication {
 
       log.info("Starting FlipkartMinutesApplication");
 
-      // Prerequirestes ----------------------------------------------
+      log.info("--------------------------------Pre-requisite Started -----------------------------------------");
 
         Product apple = new Product("Apple", "Fresh red apple", 10.0);
         Product banana = new Product("Banana", "Ripe yellow banana", 5.0);
@@ -28,9 +33,9 @@ public class FlipkartMinutesApplication {
         productRepository.addProduct(orange);
 
         InventoryManager inventoryManager = InventoryManager.getInstance();
-        inventoryManager.addInventory(apple.getProductId(), 100);
-        inventoryManager.addInventory(banana.getProductId(), 150);
-        inventoryManager.addInventory(orange.getProductId(), 120);
+        inventoryManager.addInventory(apple.getProductId(), 1);
+        inventoryManager.addInventory(banana.getProductId(), 1);
+        inventoryManager.addInventory(orange.getProductId(), 1);
 
         Customer hitesh = new Customer("Hitesh", "8989438834", new Address("flat-1", "maathalli", "banfalire", "karnatake", "560909", "India", "neaer mulitplex"), true);
         Customer hari = new Customer("Hari", "8989438835", new Address("flat-2", "maathalli", "banfalire", "karnatake", "560909", "India", "neaer mulitplex"), true);
@@ -45,22 +50,49 @@ public class FlipkartMinutesApplication {
         Cart hariCart = cartManager.createCart(hari.getCustomerId());
         hariCart.addItem(banana);
 
-      //  -------------------------------------------------------------
+      log.info("--------------------------------Pre-requisite Ended -----------------------------------------");
 
 
       OrderFacade orderFacade = OrderFacade.getInstance();
-      orderFacade.placeOrder(hiteshCart);   // shoue throw no felivery agent here foundddd
+      Order hiteshOrder = orderFacade.placeOrder(hiteshCart);   // should throw no delivery agent here found error
+      orderFacade.showOrderDetails(hiteshOrder.getOrderId());
 
       DeliveryAgent agent = new DeliveryAgent("Anil", "89898989",  new Address("flat-1", "maathalli", "banfalire", "karnatake", "560909", "India", "neaer mulitplex"));
       DeliveryAgentManager deliveryAgentManager = DeliveryAgentManager.getInstance();
       deliveryAgentManager.addDeliveryAgent(agent);
 
       ///  again trying...
-      orderFacade.placeOrder(hiteshCart);   // shoue throw no felivery agent here foundddd
+      Order hiteshOrder2 = orderFacade.placeOrder(hiteshCart);   // now able to creat order
+      orderFacade.showOrderDetails(hiteshOrder2.getOrderId());
 
+      Order hariOrder2 = orderFacade.placeOrder(hariCart);
+      orderFacade.showOrderDetails(hariOrder2.getOrderId());
+
+
+      // cancel order...
+      orderFacade.cancelOrder(hiteshOrder2.getOrderId());
+      
+
+      orderFacade.showOrderDetails(hiteshOrder2.getOrderId());
+
+      // orderFacade.placeOrder(hariCart);
 
       // view user history:
       orderFacade.viewHistory(hitesh.getCustomerId());
+
+      // testing concurrency...
+      Cart cart1 = cartManager.createCart(hitesh.getCustomerId());
+      cart1.addItem(apple);
+      Cart cart2 = cartManager.createCart(hari.getCustomerId());
+      cart2.addItem(apple);
+
+
+      log.info("--------------------Testing Concurrency and Locking ------------------------");
+      // here inventory is 1 so either will get the apple other will fail...
+      ExecutorService executorService = Executors.newFixedThreadPool(2);
+      executorService.submit(() -> {orderFacade.placeOrder(cart1);});
+      executorService.submit(() -> {orderFacade.placeOrder(cart2);});
+      executorService.shutdown();
 
     }
 

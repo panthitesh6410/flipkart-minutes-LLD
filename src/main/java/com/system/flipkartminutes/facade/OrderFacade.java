@@ -2,7 +2,6 @@ package com.system.flipkartminutes.facade;
 
 import com.system.flipkartminutes.entities.Cart;
 import com.system.flipkartminutes.entities.Order;
-import com.system.flipkartminutes.services.CartManager;
 import com.system.flipkartminutes.services.OrderManager;
 import lombok.extern.slf4j.Slf4j;
 
@@ -25,14 +24,14 @@ public class OrderFacade {
         return orderFacade;
     }
 
-    public void placeOrder(Cart cart){
+    public Order placeOrder(Cart cart){
         OrderManager orderManager = OrderManager.getInstance();
         try{
-            orderManager.placeOrder(cart.getCartId());
-        }
-        catch(Exception e){
+            return orderManager.placeOrder(cart.getCartId());
+        } catch(Exception e){
             log.error("Error in placeOrder", e);
         }
+        return null;
     }
 
     public void cancelOrder(String orderId){
@@ -41,11 +40,6 @@ public class OrderFacade {
             orderManager.cancelOrder(orderId);
         } catch(Exception e){
             log.error("Error in cancelOrder", e);
-            try{
-                orderManager.cancelOrder(orderId);
-            } catch(Exception e1){
-                log.error("Error in cancelOrder", e1);
-            }
         }
     }
 
@@ -55,6 +49,12 @@ public class OrderFacade {
         for (Order order : orders){
             log.info("Order " + order.getOrderId() + " Price - "+order.getTotalAmount());
         }
+    }
+
+    public void showOrderDetails(String orderId){
+        OrderManager orderManager = OrderManager.getInstance();
+        Order order = orderManager.getOrderById(orderId);
+        log.info("Order Details for " + order.getOrderId() + ": " + order.getTotalAmount() +" ,Order Status - "+ order.getOrderStatus());
     }
 
 }

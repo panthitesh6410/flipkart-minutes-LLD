@@ -18,7 +18,7 @@ public class DeliveryAgent {
         this.agentId = UUID.randomUUID().toString();
         this.agentName = agentName;
         this.phoneNumber = phoneNumber;
-        this.agentStatus = AgentStatus.AVAILABLE;
+        this.agentStatus = AgentStatus.IDLE;
         this.location = location;
     }
 }

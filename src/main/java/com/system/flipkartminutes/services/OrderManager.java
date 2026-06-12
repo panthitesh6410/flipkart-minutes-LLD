@@ -4,7 +4,6 @@ package com.system.flipkartminutes.services;
 import com.system.flipkartminutes.entities.*;
 import com.system.flipkartminutes.enums.OrderStatus;
 import com.system.flipkartminutes.enums.PaymentStatus;
-import com.system.flipkartminutes.exceptions.CartNotFoundException;
 import com.system.flipkartminutes.exceptions.DeliveryAgentsFoundFound;
 import com.system.flipkartminutes.exceptions.ProductNotAvailavbleException;
 import lombok.extern.slf4j.Slf4j;
@@ -84,6 +83,10 @@ public class OrderManager {
             }
         }
 
+        PaymentStatus paymentStatus = paymentService.makePayment();
+        log.info("Payment status is " + paymentStatus);
+
+
         // TODO - future me: create strategies fo Pricing also, based on like i have aded the membership in Customer classs , etc...
         double orderAmount = cart.getItems().stream().mapToDouble(item -> item.getPrice()).sum();
         Order order = Order
@@ -91,8 +94,9 @@ public class OrderManager {
                 .orderId(UUID.randomUUID().toString())
                 .customer(customer)
                 .orderPlaceTime(new Timestamp(System.currentTimeMillis()))
-                .orderStatus(OrderStatus.PLACED)
                 .totalAmount(orderAmount)
+                .paymentStatus(paymentStatus)
+                .orderStatus(paymentStatus.equals(PaymentStatus.SUCCESS) ? OrderStatus.PLACED: OrderStatus.CANCELLED)
                 .build();
 
         log.info("Order created for user - " + customer.getCustomerName() + " with order amount - " + orderAmount + " order status - " + order.getOrderStatus());
@@ -100,10 +104,12 @@ public class OrderManager {
         populateOrderByIdMap(order);
         populateCustomerOrderMap(customer, order);
 
-        PaymentStatus paymentStatus = paymentService.makePayment();
-        order.setPaymentStatus(paymentStatus);
-        log.info("Payment status for orderId - " + order.getOrderId() + " is " + paymentStatus);
-
+        if(order.getOrderStatus() != OrderStatus.PLACED){
+            log.error("Order cannot be placed due to payment failure for user " + customer.getCustomerName());
+            // refill inventory tht was deducted...
+            releaseInventory(products);
+            return order;
+        }
 
         // assigning delivery-agent to order...
         DeliveryAgent agent = null;
@@ -113,13 +119,26 @@ public class OrderManager {
             addAgentToOrder(order.getOrderId(), agent);
         } catch (DeliveryAgentsFoundFound e) {
             log.error("Cannot assign Delivery Partner - " + e.getMessage());
+             order.setOrderStatus(OrderStatus.CANCELLED);
+             log.info("Order cancelled for user " + customer.getCustomerName() + " due to - " + e.getMessage());
+             // refill inventory tht was deducted...
+             releaseInventory(products);
+             return order;
         }
 
         populateOrderByIdMap(order);
-        populateCustomerOrderMap(customer, order);
+        // populateCustomerOrderMap(customer, order);
         log.info("Order placed successfully for user " + customer.getCustomerName());
 
         return order;
+    }
+
+    private void releaseInventory(List<Product> products) {
+        InventoryManager inventoryManager = InventoryManager.getInstance();
+        for(Product product : products){
+            inventoryManager.addInventory(product.getProductId(), 1);
+        }
+        log.info("Inventory Loaded back...");
     }
 
     public void populateOrderByIdMap(Order order) {
@@ -186,7 +205,7 @@ public class OrderManager {
         // releasing delivery agent if assigned
         if(order.getDeliveryAgent() != null){
             DeliveryAgentManager deliveryAgentManager = DeliveryAgentManager.getInstance();
-            deliveryAgentManager.updateDeliveryAgentStatus(order.getDeliveryAgent().getAgentId(), com.system.flipkartminutes.enums.AgentStatus.AVAILABLE);
+            deliveryAgentManager.updateDeliveryAgentStatus(order.getDeliveryAgent().getAgentId(), com.system.flipkartminutes.enums.AgentStatus.IDLE);
             log.info("Delivery agent released for orderId " + orderId);
         }
 

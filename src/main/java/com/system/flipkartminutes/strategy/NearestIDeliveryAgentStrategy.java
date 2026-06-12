@@ -26,7 +26,7 @@ public class NearestIDeliveryAgentStrategy implements IDeliveryAgentAssignStrate
                 Order order = orderManager.getOrderById(orderId);
                 Customer customer = customerManager.getCustomerById(order.getCustomer().getCustomerId());
 
-                List<DeliveryAgent> availableAgents = deliveryAgentManager.getAvailablrDeliveryAgents();
+                List<DeliveryAgent> availableAgents = deliveryAgentManager.getAvailablrDeliveryAgents().stream().filter(agent->agent.getLocation().getPinCode().contentEquals(customer.getAddress().getPinCode())).toList();
                 if(!availableAgents.isEmpty()){
                     return availableAgents.stream().findFirst().get();
                 } else{

@@ -36,24 +36,31 @@ public class DeliveryAgentManager {
         if(deliveryAgents == null){
             deliveryAgents = new ConcurrentHashMap<>();
         }
-        return deliveryAgents.values().stream().filter(agent->agent.getAgentStatus().equals(AgentStatus.AVAILABLE)).toList();
+        return deliveryAgents.values().stream().filter(agent->agent.getAgentStatus().equals(AgentStatus.IDLE)).toList();
     }
 
     public void addDeliveryAgent(DeliveryAgent deliveryAgent){
         if(deliveryAgents == null){
-            deliveryAgents = new HashMap<String, DeliveryAgent>();
+            deliveryAgents = new HashMap<>();
         }
         deliveryAgents.put(deliveryAgent.getAgentId(), deliveryAgent);
     }
 
-    public DeliveryAgent assignDeliveryAgent(Order order) throws DeliveryAgentsFoundFound {
+    public synchronized DeliveryAgent assignDeliveryAgent(Order order) throws DeliveryAgentsFoundFound {
         com.system.flipkartminutes.strategy.IDeliveryAgentAssignStrategy factory = DeliveryAgentFactory.getDeliveryAgent(DevlieryAgentStrategyEnum.DEFAULT);
-        return factory.assignDeliveryAgent(order.getOrderId());
+        DeliveryAgent agent = factory.assignDeliveryAgent(order.getOrderId());
+        if(agent != null){
+            agent.setAgentStatus(AgentStatus.BUSY);
+            deliveryAgents.put(agent.getAgentId(), agent);
+        }
+        return agent;
     }
 
     public void updateDeliveryAgentStatus(String agentId, AgentStatus status) throws DeliveryAgentsFoundFound {
         if(deliveryAgents.containsKey(agentId)){
-            deliveryAgents.get(agentId).setAgentStatus(status);
+            DeliveryAgent deliveryAgent = deliveryAgents.get(agentId);
+            deliveryAgent.setAgentStatus(status);
+            deliveryAgents.put(agentId, deliveryAgent);
             return;
         }
         throw new DeliveryAgentsFoundFound("No DeliveryAgent found for "+ agentId);
