@@ -6,13 +6,14 @@ import com.system.flipkartminutes.enums.AgentStatus;
 import com.system.flipkartminutes.enums.DevlieryAgentStrategyEnum;
 import com.system.flipkartminutes.exceptions.DeliveryAgentsFoundFound;
 import com.system.flipkartminutes.factory.DeliveryAgentFactory;
-import com.system.flipkartminutes.strategy.IDeliveryAgentAssignStrategy;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+@Slf4j
 public class DeliveryAgentManager {
 
     // Singleton class (without springboot annorations like @Component or @Service)
@@ -46,6 +47,7 @@ public class DeliveryAgentManager {
         deliveryAgents.put(deliveryAgent.getAgentId(), deliveryAgent);
     }
 
+    // CURRENTly hardocded the stratgeyy for delivery assign heere only  for now....
     public synchronized DeliveryAgent assignDeliveryAgent(Order order) throws DeliveryAgentsFoundFound {
         com.system.flipkartminutes.strategy.IDeliveryAgentAssignStrategy factory = DeliveryAgentFactory.getDeliveryAgent(DevlieryAgentStrategyEnum.DEFAULT);
         DeliveryAgent agent = factory.assignDeliveryAgent(order.getOrderId());
@@ -64,6 +66,50 @@ public class DeliveryAgentManager {
             return;
         }
         throw new DeliveryAgentsFoundFound("No DeliveryAgent found for "+ agentId);
+    }
+
+    public void rateDeliveryAgent(String agentId, double ratingToGive) throws DeliveryAgentsFoundFound {
+        if (ratingToGive < 1.0 || ratingToGive > 5.0) {
+            throw new IllegalArgumentException("Rating must be between 1 and 5");
+        }
+        if (deliveryAgents == null) {
+            deliveryAgents = new ConcurrentHashMap<>();
+        }
+        if (deliveryAgents.containsKey(agentId)) {
+            DeliveryAgent deliveryAgent = deliveryAgents.get(agentId);
+            int totalCount = deliveryAgent.getTotalRatingsCount();
+            double totalSum = deliveryAgent.getTotalRatingSum();
+            totalCount++;
+            totalSum += ratingToGive;
+            double avg = totalSum / totalCount;
+            deliveryAgent.setTotalRatingsCount(totalCount);
+            deliveryAgent.setTotalRatingSum(totalSum);
+            deliveryAgent.setRating(avg);
+        } else {
+            throw new DeliveryAgentsFoundFound("No DeliveryAgent found for " + agentId);
+        }
+    }
+
+    public void pickUpOrder(String agentId, String orderId) {
+        // optionally validate the agent is actually assigned to this order
+        Order order = OrderManager.getInstance().getOrderById(orderId);
+        if (!order.getDeliveryAgent().getAgentId().equals(agentId)) {
+            throw new RuntimeException("Agent not assigned to this order");
+        }
+        OrderManager.getInstance().pickUpOrder(orderId);
+    }
+
+    public void markDelivered(String agentId, String orderId) {
+        Order order = OrderManager.getInstance().getOrderById(orderId);
+        if (!order.getDeliveryAgent().getAgentId().equals(agentId)) {
+            throw new RuntimeException("Agent not assigned to this order");
+        }
+        try {
+            OrderManager.getInstance().markDelivered(orderId);
+            log.info("Delivered order with orderId: " + orderId);
+        } catch (DeliveryAgentsFoundFound e) {
+            throw new RuntimeException(e);
+        }
     }
 
 }

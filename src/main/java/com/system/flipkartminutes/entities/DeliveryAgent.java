@@ -14,6 +14,11 @@ public class DeliveryAgent {
     private String phoneNumber;
     private AgentStatus agentStatus;
     private Address location;
+    double totalRatingSum = 3.0 ;  // by-default rating (sirf starting me)
+    int totalRatingsCount = 1;     // assume ki 1 rating hai
+    double rating = 3.0;        // avg rating...
+
+
     public DeliveryAgent(String agentName, String phoneNumber, Address location) {
         this.agentId = UUID.randomUUID().toString();
         this.agentName = agentName;

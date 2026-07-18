@@ -23,5 +23,6 @@ public class Order {
     private OrderStatus orderStatus;
     private Timestamp orderPlaceTime;
     private PaymentStatus paymentStatus;
+    private boolean isRated = false;        // starting me by-default, not rated
 
 }
