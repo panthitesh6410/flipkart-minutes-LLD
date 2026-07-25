@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 
 @Slf4j
@@ -57,14 +58,14 @@ public class CartManager {
     }
     private void populateCartByIdMap(Cart cart){
         if(cartsById == null){
-            cartsById = new HashMap<>();
+            cartsById = new ConcurrentHashMap<>();
         }
         cartsById.put(cart.getCartId(), cart);
     }
 
     private void populateCustomerCartMap(Customer customer, Cart cart){
         if(customerCartMap == null){
-            customerCartMap = new HashMap<>();
+            customerCartMap = new ConcurrentHashMap<>();
         }
         if(!customerCartMap.containsKey(customer.getCustomerId())) {
             customerCartMap.put(customer.getCustomerId(), new java.util.ArrayList<>());

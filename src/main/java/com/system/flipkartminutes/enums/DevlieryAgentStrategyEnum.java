@@ -2,5 +2,6 @@ package com.system.flipkartminutes.enums;
 
 public enum DevlieryAgentStrategyEnum {
     NEAREST,
-    DEFAULT
+    DEFAULT,
+    RATING_BASED
 }

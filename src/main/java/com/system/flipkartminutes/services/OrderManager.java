@@ -2,6 +2,7 @@ package com.system.flipkartminutes.services;
 
 
 import com.system.flipkartminutes.entities.*;
+import com.system.flipkartminutes.enums.AgentStatus;
 import com.system.flipkartminutes.enums.OrderStatus;
 import com.system.flipkartminutes.enums.PaymentStatus;
 import com.system.flipkartminutes.exceptions.DeliveryAgentsFoundFound;
@@ -199,6 +200,13 @@ public class OrderManager {
             log.error("Order not found for orderId " + orderId);
             throw new RuntimeException("Order not found for orderId " + orderId);
         }
+
+        // filter - as given in doc req - order cant be canlceed when picked....
+        if (order.getOrderStatus() == OrderStatus.PICKED_UP ||
+                order.getOrderStatus() == OrderStatus.DELIVERED) {
+            throw new RuntimeException("Cannot cancel order already picked up or delivered");
+        }
+
         order.setOrderStatus(OrderStatus.CANCELLED);
         log.info("Order cancelled for orderId " + orderId);
 
@@ -210,5 +218,57 @@ public class OrderManager {
         }
 
     }
+
+    // to be schdeulded by some CRON job if needed - just simulating that thinkg.. in BATCH kinda thinkg...
+    // for all orders at once will mark...
+    public void autoCancelExpiredOrders(long thresholdMs) {
+        if (ordersByIdMap == null) return;
+        long now = System.currentTimeMillis();
+        ordersByIdMap.values().stream()
+                .filter(o -> o.getOrderStatus() == OrderStatus.PLACED).filter(o -> (now - o.getOrderPlaceTime().getTime()) > thresholdMs).forEach(o -> {
+                    try {
+                        cancelOrder(o.getOrderId());
+                        log.info("Auto-cancelled expired order: {}", o.getOrderId());
+                    } catch (Exception e) {
+                        log.error("Error auto-cancelling order: {}", o.getOrderId(), e);
+                    }
+                });
+    }
+
+
+    // delivery ka status to uuppdated by agent ::
+    // sirf delivery parntnetn can call these oneee::::
+
+    public void pickUpOrder(String orderId) {
+        Order order = getOrderById(orderId);
+        if (order == null) {
+            throw new RuntimeException("Order not found: " + orderId);
+        }
+        if (order.getOrderStatus() != OrderStatus.PLACED) {
+            throw new RuntimeException(orderId+" Cannot pick up. Current status: " + order.getOrderStatus());
+        }
+        order.setOrderStatus(OrderStatus.PICKED_UP);
+        log.info("Order {} picked up by agent {}", orderId, order.getDeliveryAgent().getAgentName());
+    }
+
+
+    public void markDelivered(String orderId) throws DeliveryAgentsFoundFound {
+        Order order = getOrderById(orderId);
+        if (order == null) {
+            throw new RuntimeException("Order not found: " + orderId);
+        }
+        if (order.getOrderStatus() != OrderStatus.PICKED_UP) {
+            throw new RuntimeException("Cannot deliver. Current status: " + order.getOrderStatus());
+        }
+        order.setOrderStatus(OrderStatus.DELIVERED);
+        // free the agent so they can take the next order
+        DeliveryAgentManager.getInstance()
+                .updateDeliveryAgentStatus(order.getDeliveryAgent().getAgentId(), AgentStatus.IDLE);
+        log.info("Mark-Devlieded - Order {} delivered. Agent {} is now IDLE.", orderId, order.getDeliveryAgent().getAgentName());
+    }
+
+
+
+
 
 }

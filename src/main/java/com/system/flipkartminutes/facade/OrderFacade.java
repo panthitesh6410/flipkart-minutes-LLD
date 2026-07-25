@@ -1,7 +1,10 @@
 package com.system.flipkartminutes.facade;
 
 import com.system.flipkartminutes.entities.Cart;
+import com.system.flipkartminutes.entities.DeliveryAgent;
 import com.system.flipkartminutes.entities.Order;
+import com.system.flipkartminutes.exceptions.DeliveryAgentsFoundFound;
+import com.system.flipkartminutes.services.DeliveryAgentManager;
 import com.system.flipkartminutes.services.OrderManager;
 import lombok.extern.slf4j.Slf4j;
 
@@ -10,7 +13,7 @@ import java.util.List;
 @Slf4j
 public class OrderFacade {
 
-    // Singleton class (without springboot annorations like @Component or @Service)
+    // Singleton class:
     private OrderFacade(){}
     private static OrderFacade orderFacade;
     public static OrderFacade getInstance(){
@@ -55,6 +58,28 @@ public class OrderFacade {
         OrderManager orderManager = OrderManager.getInstance();
         Order order = orderManager.getOrderById(orderId);
         log.info("Order Details for " + order.getOrderId() + ": " + order.getTotalAmount() +" ,Order Status - "+ order.getOrderStatus());
+    }
+
+    public void rateOrder(String orderId, double rating){
+        OrderManager orderManager = OrderManager.getInstance();
+        DeliveryAgentManager deliveryAgentManager = DeliveryAgentManager.getInstance();
+        Order order = orderManager.getOrderById(orderId);
+        if(order != null && !order.isRated()){
+            DeliveryAgent deliveryAgent = order.getDeliveryAgent();
+            try{
+                deliveryAgentManager.rateDeliveryAgent(deliveryAgent.getAgentId(), rating);
+                order.setRated(true);
+            }  catch(DeliveryAgentsFoundFound e){
+                log.error("Error in rateOrder: ", e);
+            }
+        } else{
+            log.error("Either order is already rated or not found! - "+orderId);
+        }
+    }
+
+    public void autoCancelExpiredOrders(long thresholdMs) {
+        log.info("Running auto-cancel batch...");
+        OrderManager.getInstance().autoCancelExpiredOrders(thresholdMs);
     }
 
 }
