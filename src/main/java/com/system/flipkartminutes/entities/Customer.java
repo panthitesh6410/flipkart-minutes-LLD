@@ -12,13 +12,11 @@ public class Customer {
     private String customerName;
     private String phoneNumber;
     private Address address;
-    private boolean flipkartOne;
 
-    public Customer(String customerName, String phoneNumber, Address address, boolean flipkartOne) {
+    public Customer(String customerName, String phoneNumber, Address address) {
         this.customerId = UUID.randomUUID().toString();
         this.customerName = customerName;
         this.phoneNumber = phoneNumber;
         this.address = address;
-        this.flipkartOne = flipkartOne;
     }
 }

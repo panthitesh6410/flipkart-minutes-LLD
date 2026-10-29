@@ -1,22 +1,20 @@
 package com.system.flipkartminutes;
 
 import com.system.flipkartminutes.entities.*;
+import com.system.flipkartminutes.enums.OrderStatus;
 import com.system.flipkartminutes.facade.OrderFacade;
 import com.system.flipkartminutes.services.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-import java.util.concurrent.Executor;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.*;
 
 @Slf4j
 @SpringBootApplication
 public class FlipkartMinutesApplication {
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws ExecutionException, InterruptedException {
         // SpringApplication.run(FlipkartMinutesApplication.class, args);
 
       log.info("Starting FlipkartMinutesApplication");
@@ -37,8 +35,8 @@ public class FlipkartMinutesApplication {
       inventoryManager.addInventory(banana.getProductId(), 4);
       inventoryManager.addInventory(orange.getProductId(), 4);
 
-      Customer hitesh = new Customer("Hitesh", "8989438834", new Address("flat-1", "maathalli", "banfalire", "karnatake", "560909", "India", "neaer mulitplex"), true);
-      Customer hari = new Customer("Hari", "8989438835", new Address("flat-2", "maathalli", "banfalire", "karnatake", "560909", "India", "neaer mulitplex"), true);
+      Customer hitesh = new Customer("Hitesh", "8989438834", new Address("flat-1", "maathalli", "bangalire", "karnatake", "560909", "India", "neaer mulitplex"));
+      Customer hari = new Customer("Hari", "8989438835", new Address("flat-2", "maathalli", "bangalire", "karnatake", "560909", "India", "neaer mulitplex"));
       CustomerManager customerManager = CustomerManager.getInstance();
       customerManager.addCustomer(hitesh);
       customerManager.addCustomer(hari);
@@ -54,88 +52,119 @@ public class FlipkartMinutesApplication {
 
 
       OrderFacade orderFacade = OrderFacade.getInstance();
-      Order hiteshOrder = orderFacade.placeOrder(hiteshCart);   // should throw no delivery agent here found error
-      orderFacade.showOrderDetails(hiteshOrder.getOrderId());
+      Order hiteshOrder = orderFacade.placeOrder(hiteshCart);   // willl givev - no delivery agent here found error
 
       // adding 1 delivery agent to satrtt...
       DeliveryAgent agent = new DeliveryAgent("Anil", "89898989",  new Address("flat-1", "maathalli", "banfalire", "karnatake", "560909", "India", "neaer mulitplex"));
       DeliveryAgentManager deliveryAgentManager = DeliveryAgentManager.getInstance();
       deliveryAgentManager.addDeliveryAgent(agent);
 
-      ///  again trying...
-      Order hiteshOrder2 = orderFacade.placeOrder(hiteshCart);   // now able to creat order
-      orderFacade.showOrderDetails(hiteshOrder2.getOrderId());
 
-      Order hariOrder2 = orderFacade.placeOrder(hariCart);
-      orderFacade.showOrderDetails(hariOrder2.getOrderId());
+
+      ///  again trying...
+      hiteshOrder = orderFacade.placeOrder(hiteshCart);   // now able to creat order
+      orderFacade.showOrderDetails(hiteshOrder.getOrderId());
+      orderFacade.pickUpOrder(hiteshOrder);
+      orderFacade.showOrderDetails(hiteshOrder.getOrderId());
+      orderFacade.markDelivered(hiteshOrder);
+      orderFacade.showOrderDetails(hiteshOrder.getOrderId());
 
 
       // cancel order...
-      orderFacade.cancelOrder(hiteshOrder2.getOrderId());
-      
+       orderFacade.cancelOrder(hiteshOrder.getOrderId());
 
-      orderFacade.showOrderDetails(hiteshOrder2.getOrderId());
+      // RATE ORDDEER:
+      orderFacade.rateOrder(hiteshOrder.getOrderId(), 4.0);
 
-      // orderFacade.placeOrder(hariCart);
 
       // view user history:
       orderFacade.viewHistory(hitesh.getCustomerId());
 
 
 
-      log.info("\n\nSTARTING-------------->>>>>>tesgting of delivery picked and delivered successsfullyy:");
-
-      Order hiteshOrder3 = orderFacade.placeOrder(hiteshCart);   // now able to creat order
-
-      deliveryAgentManager.pickUpOrder(agent.getAgentId(), hiteshOrder3.getOrderId());
-      orderFacade.showOrderDetails(hiteshOrder3.getOrderId());  // should show PICKED_UP
-
-      orderFacade.cancelOrder(hiteshOrder3.getOrderId());  // should log error / throw
-
-      deliveryAgentManager.markDelivered(agent.getAgentId(), hiteshOrder3.getOrderId());
-      orderFacade.showOrderDetails(hiteshOrder3.getOrderId());  // should show DELIVERED
-
-
-      log.info("ENDINGGGGG-------------->>>>>>tesgting of delivery picked and delivered successsfullyy:\n\n");
-
-
+//      log.info("\n\nSTARTING-------------->>>>>>tesgting of delivery picked and delivered successsfullyy:");
+//
+//      Order hiteshOrder3 = orderFacade.placeOrder(hiteshCart);   // now able to creat order
+//
+//      deliveryAgentManager.pickUpOrder(agent.getAgentId(), hiteshOrder3.getOrderId());
+//      orderFacade.showOrderDetails(hiteshOrder3.getOrderId());  // should show PICKED_UP
+//
+//      orderFacade.cancelOrder(hiteshOrder3.getOrderId());  // should log error / throw
+//
+//      deliveryAgentManager.markDelivered(agent.getAgentId(), hiteshOrder3.getOrderId());
+//      orderFacade.showOrderDetails(hiteshOrder3.getOrderId());  // should show DELIVERED
+//
+//
+//      log.info("ENDINGGGGG-------------->>>>>>tesgting of delivery picked and delivered successsfullyy:\n\n");
 
 
 
-      // testing concurrency...
+//
+
+//
+//
+//      // to testinggg of auto-cancnelll:
+//      log.info("\n\n------------- Testing auto-cancel of expired orders -------------------");
+//      try {
+//          Order order1 = orderFacade.placeOrder(cart1);
+//          Order order2 = orderFacade.placeOrder(cart2);
+//          Order order3 = orderFacade.placeOrder(cart1);
+//          Thread.sleep(100);
+//      } catch (InterruptedException e) {
+//          throw new RuntimeException(e);
+//      }
+//      orderFacade.autoCancelExpiredOrders(50);
+//      // orderFacade.autoCancelExpiredOrders(30 * 60 * 1000L);      // As per req - but not possible for testing 30 mins...
+//      log.info("------------- Testing auto-cancel of expired orders -------------------\n\n");
+//
+//      DeliveryAgent agent2 = new DeliveryAgent("Anil2", "89898989",  new Address("flat-1", "maathalli", "banfalire", "karnatake", "560909", "India", "neaer mulitplex"));
+//      DeliveryAgent agent3 = new DeliveryAgent("Anil3", "89898989",  new Address("flat-1", "maathalli", "banfalire", "karnatake", "560909", "India", "neaer mulitplex"));
+//      deliveryAgentManager.addDeliveryAgent(agent2);
+//      deliveryAgentManager.addDeliveryAgent(agent3);
+//
+
+
+
+      log.info("\n\n***********  Testing Concurrency and Locking");
       Cart cart1 = cartManager.createCart(hitesh.getCustomerId());
       cart1.addItem(apple);
       Cart cart2 = cartManager.createCart(hari.getCustomerId());
       cart2.addItem(apple);
-
-
-      // to testinggg of auto-cancnelll:
-      log.info("\n\n------------- Testing auto-cancel of expired orders -------------------");
-      try {
-          Order order1 = orderFacade.placeOrder(cart1);
-          Order order2 = orderFacade.placeOrder(cart2);
-          Order order3 = orderFacade.placeOrder(cart1);
-          Thread.sleep(100);
-      } catch (InterruptedException e) {
-          throw new RuntimeException(e);
-      }
-      orderFacade.autoCancelExpiredOrders(50);
-      // orderFacade.autoCancelExpiredOrders(30 * 60 * 1000L);      // As per req - but not possible for testing 30 mins...
-      log.info("------------- Testing auto-cancel of expired orders -------------------\n\n");
-
-      DeliveryAgent agent2 = new DeliveryAgent("Anil2", "89898989",  new Address("flat-1", "maathalli", "banfalire", "karnatake", "560909", "India", "neaer mulitplex"));
-      DeliveryAgent agent3 = new DeliveryAgent("Anil3", "89898989",  new Address("flat-1", "maathalli", "banfalire", "karnatake", "560909", "India", "neaer mulitplex"));
-      deliveryAgentManager.addDeliveryAgent(agent2);
-      deliveryAgentManager.addDeliveryAgent(agent3);
-
-      log.info("\n\nTesting Concurrency and Locking");
       // here inventory is 1 left so either will get the apple other will fail.
       ExecutorService executorService = Executors.newFixedThreadPool(2);
-      executorService.submit(() -> {orderFacade.placeOrder(cart2);});
-      executorService.submit(() -> {orderFacade.placeOrder(cart1);});
-      executorService.shutdown();
+      Future<Order> first = executorService.submit(() -> orderFacade.placeOrder(cart1));
+      Future<Order> second = executorService.submit(() -> orderFacade.placeOrder(cart2));
+      try {
+        Order firstOrder = first.get();
+        Order secondOrder = second.get();
+
+        log.info("First order status: {}",
+                firstOrder == null ? "FAILED" : firstOrder.getOrderStatus());
+        log.info("Second order status: {}",
+                secondOrder == null ? "FAILED" : secondOrder.getOrderStatus());
+      }catch (Exception e) {
+        log.error("Order task failed", e.getCause());
+      } finally{
+        executorService.shutdown();
+      }
+
+
+
+      // AUTOOOO CANCNELD  EXPIREED JOB :
+    log.info("&&&&&&&&&&&&&&&&&&  testing autocancel jobn");
+      DeliveryAgent da1 = new DeliveryAgent("Ramesh", "89898989", null);
+      DeliveryAgentManager.getInstance().addDeliveryAgent(da1);
+      Order order1 = orderFacade.placeOrder(cart1);
+      orderFacade.showOrderDetails(order1.getOrderId()); // expect PLACED
+      try {
+        Thread.sleep(100);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        throw new RuntimeException(e);
+      }
+      orderFacade.autoCancelExpiredOrders(50);
+      orderFacade.showOrderDetails(order1.getOrderId()); // expect CANCELLED
 
     }
-
 
 }

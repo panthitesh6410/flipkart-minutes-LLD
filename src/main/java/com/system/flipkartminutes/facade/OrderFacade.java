@@ -50,7 +50,7 @@ public class OrderFacade {
         OrderManager orderManager = OrderManager.getInstance();
         List<Order> orders = orderManager.getOrderHistoryForCustomer(customerId);
         for (Order order : orders){
-            log.info("Order " + order.getOrderId() + " Price - "+order.getTotalAmount());
+            log.info("Order " + order.getOrderId() + " Price - "+order.getTotalAmount() + ", Status - "+order.getOrderStatus());
         }
     }
 
@@ -69,6 +69,7 @@ public class OrderFacade {
             try{
                 deliveryAgentManager.rateDeliveryAgent(deliveryAgent.getAgentId(), rating);
                 order.setRated(true);
+                log.info("Succssfully Rated Devliery - {} with rating - {}", order.getOrderId(), rating);
             }  catch(DeliveryAgentsFoundFound e){
                 log.error("Error in rateOrder: ", e);
             }
@@ -80,6 +81,26 @@ public class OrderFacade {
     public void autoCancelExpiredOrders(long thresholdMs) {
         log.info("Running auto-cancel batch...");
         OrderManager.getInstance().autoCancelExpiredOrders(thresholdMs);
+    }
+
+    public void markDelivered(Order order){
+        DeliveryAgentManager deliveryAgentManager = DeliveryAgentManager.getInstance();
+        try{
+            deliveryAgentManager.markDelivered(order.getDeliveryAgent().getAgentId(), order.getOrderId());
+            log.info("Delivered Successfully Order {}", order.getOrderId());
+        } catch (Exception e){
+            log.error("Error in markDelivered", e);
+        }
+    }
+
+    public void pickUpOrder(Order order){
+        DeliveryAgentManager deliveryAgentManager = DeliveryAgentManager.getInstance();
+        try{
+            deliveryAgentManager.pickUpOrder(order.getDeliveryAgent().getAgentId(), order.getOrderId());
+            log.info("Picked Up Order Successfully Order {} by {}", order.getOrderId(), order.getDeliveryAgent().getAgentName());
+        } catch (Exception e){
+            log.error("Error in markDelivered", e);
+        }
     }
 
 }

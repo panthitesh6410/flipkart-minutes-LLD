@@ -22,11 +22,13 @@ public class LockManager {
         return lockManager;
     }
 
-    private Map<String, ReentrantLock> locks = new ConcurrentHashMap<>();
+    private Map<String, ReentrantLock> productLocks = new ConcurrentHashMap<>();
 
-    public boolean acquireLock(String productId){
-        locks.putIfAbsent(productId, new ReentrantLock());
-        ReentrantLock lock = locks.get(productId);
+    private Map<String, ReentrantLock> deliveryAgentLocks = new ConcurrentHashMap<>();
+
+    public boolean acquireProductLock(String productId){
+        productLocks.putIfAbsent(productId, new ReentrantLock());
+        ReentrantLock lock = productLocks.get(productId);
 
         if(lock.tryLock()){
             log.info("Lock acquired for product: " + productId);
@@ -38,12 +40,38 @@ public class LockManager {
     }
 
 
-    public void releaseLock(String productId){
-        ReentrantLock lock = locks.get(productId);
+    public void releaseProductLock(String productId){
+        ReentrantLock lock = productLocks.get(productId);
         if(lock != null && lock.isHeldByCurrentThread()){
             lock.unlock();
             log.info("Released lock for product: " + productId);
         }
     }
+
+    // -----------------copy -paste karo for delivery agent lockkkks
+
+    public boolean acquireAgentLock(String agentId){
+        deliveryAgentLocks.putIfAbsent(agentId, new ReentrantLock());
+        ReentrantLock lock = deliveryAgentLocks.get(agentId);
+
+        if(lock.tryLock()){
+            log.info("Lock acquired for Delivery Agent: " + agentId);
+            return true;
+        } else {
+            log.info("Failed to acquire lock for DveliryAgent: " + agentId);
+            return false;
+        }
+    }
+
+
+    public void releaseAgentLock(String agentId){
+        ReentrantLock lock = deliveryAgentLocks.get(agentId);
+        if(lock != null && lock.isHeldByCurrentThread()){
+            lock.unlock();
+            log.info("Released lock for Devlivery Agentt: " + agentId);
+        }
+    }
+
+
 
 }

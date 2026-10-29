@@ -49,12 +49,8 @@ public class DeliveryAgentManager {
 
     // CURRENTly hardocded the stratgeyy for delivery assign heere only  for now....
     public synchronized DeliveryAgent assignDeliveryAgent(Order order) throws DeliveryAgentsFoundFound {
-        com.system.flipkartminutes.strategy.IDeliveryAgentAssignStrategy factory = DeliveryAgentFactory.getDeliveryAgent(DevlieryAgentStrategyEnum.DEFAULT);
-        DeliveryAgent agent = factory.assignDeliveryAgent(order.getOrderId());
-        if(agent != null){
-            agent.setAgentStatus(AgentStatus.BUSY);
-            deliveryAgents.put(agent.getAgentId(), agent);
-        }
+        com.system.flipkartminutes.strategy.IDeliveryAgentAssignStrategy strategy = DeliveryAgentFactory.getDeliveryAgent(DevlieryAgentStrategyEnum.DEFAULT);
+        DeliveryAgent agent = strategy.assignDeliveryAgent(order.getOrderId());
         return agent;
     }
 

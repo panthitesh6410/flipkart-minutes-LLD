@@ -34,7 +34,7 @@ public class ProductRepository {
              products = new ConcurrentHashMap<>();
          }
          products.put(product.getProductId(), product);
-         log.info("Product {} has been added", product.getProductId());
+         log.info("Product {}-{} has been added", product.getProductName(), product.getProductId());
     }
 
     public Product getProduct(String productId) throws ProductNotAvailavbleException {

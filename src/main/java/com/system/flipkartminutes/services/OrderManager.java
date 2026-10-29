@@ -10,10 +10,7 @@ import com.system.flipkartminutes.exceptions.ProductNotAvailavbleException;
 import lombok.extern.slf4j.Slf4j;
 
 import java.sql.Timestamp;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
@@ -36,6 +33,10 @@ public class OrderManager {
 
     private Map<String, Order> ordersByIdMap;
     private Map<String, List<String>> customerOrderMap;
+
+    // watiingg queue:
+    private Queue<Order> waitingOrderQueue = new LinkedList<>();
+
 
     public Order placeOrder(String cartId) throws Exception {
         log.info("placing order for cart " + cartId);
@@ -64,7 +65,7 @@ public class OrderManager {
         List<Product> products = cart.getItems();
         for(Product product : products) {
             try{
-                boolean locked = lockManager.acquireLock(product.getProductId());
+                boolean locked = lockManager.acquireProductLock(product.getProductId());
                 if(!locked){
                     log.error("Product Not Avvail - "+product.getProductId());
                     throw new ProductNotAvailavbleException("Cant Place Order, product Not avail - "+product.getProductId());
@@ -73,14 +74,13 @@ public class OrderManager {
                     int availQty = inventoryManager.getInventoryByProductId(product.getProductId());
                     if(availQty < 1){
                         log.error("Product Not Avvail in inventory - "+product.getProductId());
-                        lockManager.releaseLock(product.getProductId());
+                        lockManager.releaseProductLock(product.getProductId());
                         throw new ProductNotAvailavbleException("Cant Place Order, product Not avail in inventory - "+product.getProductId());
                     }
                     inventoryManager.deductInventory(product.getProductId());
                 }
             } finally {
-                lockManager.releaseLock(product.getProductId());
-                log.info("Lock released for product " + product.getProductId());
+                lockManager.releaseProductLock(product.getProductId());
             }
         }
 
@@ -112,19 +112,32 @@ public class OrderManager {
             return order;
         }
 
+
         // assigning delivery-agent to order...
         DeliveryAgent agent = null;
+        boolean isAgentLocked = false;
         try {
             log.info("Assigning Delivery Partner...");
             agent =  deliveryAgentManager.assignDeliveryAgent(order);
+            isAgentLocked = lockManager.acquireAgentLock(agent.getAgentId());
+            if(!isAgentLocked){
+                log.error("Can assign Agent - {} to order - {} as Agent is already acquiered!", agent.getAgentName(), order.getOrderId());
+                throw new DeliveryAgentsFoundFound("Agentt-"+ agent.getAgentName()+" is already acquiremd!");
+            }
+            deliveryAgentManager.updateDeliveryAgentStatus(agent.getAgentId(), AgentStatus.BUSY);
             addAgentToOrder(order.getOrderId(), agent);
         } catch (DeliveryAgentsFoundFound e) {
             log.error("Cannot assign Delivery Partner - " + e.getMessage());
-             order.setOrderStatus(OrderStatus.CANCELLED);
-             log.info("Order cancelled for user " + customer.getCustomerName() + " due to - " + e.getMessage());
-             // refill inventory tht was deducted...
-             releaseInventory(products);
-             return order;
+            order.setOrderStatus(OrderStatus.CANCELLED);
+            log.info("Order cancelled for user " + customer.getCustomerName() + " due to - " + e.getMessage());
+            // refill inventory tht was deducted...
+            releaseInventory(products);
+            // move this order to a waiting queue abhi ke liiye....
+            addOrderToWaitingQueue(order);
+            // TODO - trigiger mech write code
+            return order;
+        } finally{
+            if(agent != null && isAgentLocked)     lockManager.releaseAgentLock(agent.getAgentId());
         }
 
         populateOrderByIdMap(order);
@@ -133,6 +146,22 @@ public class OrderManager {
 
         return order;
     }
+
+    //------------- captuore unfullfileled orders and triiger------------------------------
+    private void addOrderToWaitingQueue(Order order) {
+        waitingOrderQueue.add(order);
+        log.info("Added Order {} to waiting Queue!!!", order.getOrderId());
+    }
+
+    public void placeWaitingOrders(){
+        while(!waitingOrderQueue.isEmpty()){
+            Order retryOrder = waitingOrderQueue.poll();
+            log.info("Placing Order {} from Waiting List...", retryOrder.getOrderId());
+            // placeOrder(order.getCartId());
+        }
+    }
+
+    // ---------------------------------------------------------
 
     private void releaseInventory(List<Product> products) {
         InventoryManager inventoryManager = InventoryManager.getInstance();
@@ -217,6 +246,7 @@ public class OrderManager {
             log.info("Delivery agent released for orderId " + orderId);
         }
 
+        releaseInventory(order.getProducts());  // refill iteems to inentoryyy
     }
 
     // to be schdeulded by some CRON job if needed - just simulating that thinkg.. in BATCH kinda thinkg...
@@ -266,7 +296,6 @@ public class OrderManager {
                 .updateDeliveryAgentStatus(order.getDeliveryAgent().getAgentId(), AgentStatus.IDLE);
         log.info("Mark-Devlieded - Order {} delivered. Agent {} is now IDLE.", orderId, order.getDeliveryAgent().getAgentName());
     }
-
 
 
 
