@@ -164,6 +164,7 @@ public class OrderManager {
     // ---------------------------------------------------------
 
     private void releaseInventory(List<Product> products) {
+        if(products == null || products.isEmpty()) return;
         InventoryManager inventoryManager = InventoryManager.getInstance();
         for(Product product : products){
             inventoryManager.addInventory(product.getProductId(), 1);
@@ -242,7 +243,7 @@ public class OrderManager {
         // releasing delivery agent if assigned
         if(order.getDeliveryAgent() != null){
             DeliveryAgentManager deliveryAgentManager = DeliveryAgentManager.getInstance();
-            deliveryAgentManager.updateDeliveryAgentStatus(order.getDeliveryAgent().getAgentId(), com.system.flipkartminutes.enums.AgentStatus.IDLE);
+            deliveryAgentManager.updateDeliveryAgentStatus(order.getDeliveryAgent().getAgentId(), AgentStatus.IDLE);
             log.info("Delivery agent released for orderId " + orderId);
         }
 

@@ -82,47 +82,6 @@ public class FlipkartMinutesApplication {
 
 
 
-//      log.info("\n\nSTARTING-------------->>>>>>tesgting of delivery picked and delivered successsfullyy:");
-//
-//      Order hiteshOrder3 = orderFacade.placeOrder(hiteshCart);   // now able to creat order
-//
-//      deliveryAgentManager.pickUpOrder(agent.getAgentId(), hiteshOrder3.getOrderId());
-//      orderFacade.showOrderDetails(hiteshOrder3.getOrderId());  // should show PICKED_UP
-//
-//      orderFacade.cancelOrder(hiteshOrder3.getOrderId());  // should log error / throw
-//
-//      deliveryAgentManager.markDelivered(agent.getAgentId(), hiteshOrder3.getOrderId());
-//      orderFacade.showOrderDetails(hiteshOrder3.getOrderId());  // should show DELIVERED
-//
-//
-//      log.info("ENDINGGGGG-------------->>>>>>tesgting of delivery picked and delivered successsfullyy:\n\n");
-
-
-
-//
-
-//
-//
-//      // to testinggg of auto-cancnelll:
-//      log.info("\n\n------------- Testing auto-cancel of expired orders -------------------");
-//      try {
-//          Order order1 = orderFacade.placeOrder(cart1);
-//          Order order2 = orderFacade.placeOrder(cart2);
-//          Order order3 = orderFacade.placeOrder(cart1);
-//          Thread.sleep(100);
-//      } catch (InterruptedException e) {
-//          throw new RuntimeException(e);
-//      }
-//      orderFacade.autoCancelExpiredOrders(50);
-//      // orderFacade.autoCancelExpiredOrders(30 * 60 * 1000L);      // As per req - but not possible for testing 30 mins...
-//      log.info("------------- Testing auto-cancel of expired orders -------------------\n\n");
-//
-//      DeliveryAgent agent2 = new DeliveryAgent("Anil2", "89898989",  new Address("flat-1", "maathalli", "banfalire", "karnatake", "560909", "India", "neaer mulitplex"));
-//      DeliveryAgent agent3 = new DeliveryAgent("Anil3", "89898989",  new Address("flat-1", "maathalli", "banfalire", "karnatake", "560909", "India", "neaer mulitplex"));
-//      deliveryAgentManager.addDeliveryAgent(agent2);
-//      deliveryAgentManager.addDeliveryAgent(agent3);
-//
-
 
 
       log.info("\n\n***********  Testing Concurrency and Locking");
@@ -142,8 +101,6 @@ public class FlipkartMinutesApplication {
                 firstOrder == null ? "FAILED" : firstOrder.getOrderStatus());
         log.info("Second order status: {}",
                 secondOrder == null ? "FAILED" : secondOrder.getOrderStatus());
-      }catch (Exception e) {
-        log.error("Order task failed", e.getCause());
       } finally{
         executorService.shutdown();
       }
